@@ -44,6 +44,7 @@ class SessionStore:
         self.entries_today = 0
         self.latest_event_msg = "idle"
         self.today_date = self._now().date()
+        self._pending_notif: dict | None = None
 
     def apply_event(self, event: dict) -> bool:
         name = event.get("hook_event_name")
@@ -77,6 +78,8 @@ class SessionStore:
             self.entries_today += 1
             self.latest_event_msg = "\U0001f916 working in " + cwd_name
         elif name == "Stop":
+            if session.state == "running":
+                self._pending_notif = {"t": "done", "p": cwd_name}
             session.state = "idle"
             self.latest_event_msg = "\u2726 done in " + cwd_name
         elif name == "SubagentStop":
@@ -102,7 +105,7 @@ class SessionStore:
     def compute_heartbeat(self) -> dict:
         running = sum(1 for session in self.sessions.values() if session.state == "running")
         total = len(self.sessions)
-        return {
+        hb: dict = {
             "msg": self.latest_event_msg,
             "total": total,
             "running": running,
@@ -111,6 +114,10 @@ class SessionStore:
             "tokens_today": self.tokens_today,
             "entries": self.entries_today,
         }
+        if self._pending_notif is not None:
+            hb["notif"] = self._pending_notif
+            self._pending_notif = None
+        return hb
 
     def snapshot_sessions(self) -> dict[str, dict[str, str]]:
         return {sid: session.snapshot() for sid, session in self.sessions.items()}
