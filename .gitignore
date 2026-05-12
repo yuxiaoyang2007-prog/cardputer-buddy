@@ -3,9 +3,12 @@ build-with-claude/
 
 # cc-codex paired-build process docs — keep PLAN.md / review-*.md / cc-decisions-*.md / SUMMARY.md
 paired-build/**/codex-prompt-*.md
-paired-build/**/codex-fix-prompt-*.md
 paired-build/**/codex-impl-prompt.md
+paired-build/**/codex-impl-prompt-resume.md
 paired-build/**/codex-impl-result.md
+paired-build/**/codex-fix-prompt-*.md
+paired-build/**/codex-fix-result-*.md
+paired-build/**/codex-final-review-prompt*.md
 paired-build/**/test-results-*.log
 paired-build/**/impl-diff.patch
 paired-build/**/impl-diff.stat
