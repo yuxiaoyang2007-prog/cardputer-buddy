@@ -110,7 +110,7 @@ class CardputerBleClient:
                 await self.sleep_fn(self.backoff_delay(attempt))
                 attempt += 1
             finally:
-                if not self.is_connected():
+                if self.state in ("connected",):
                     await self.on_disconnected(None)
 
     async def _find_device(self) -> Any | None:

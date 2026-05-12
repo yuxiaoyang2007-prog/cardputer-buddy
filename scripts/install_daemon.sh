@@ -5,7 +5,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNTIME_DIR="${HOME}/.cardputer-daemon"
 PLIST_TEMPLATE="${ROOT}/cn.joulian.cardputer-daemon.plist.template"
 PLIST_PATH="${HOME}/Library/LaunchAgents/cn.joulian.cardputer-daemon.plist"
+TMP_PLIST="${TMPDIR:-/tmp}/cn.joulian.cardputer-daemon.plist.new"
 PYTHON_BASE="${PYTHON_BASE:-/opt/homebrew/bin/python3}"
+
+cleanup() {
+  rm -f "$TMP_PLIST"
+}
+trap cleanup EXIT
 
 if [ ! -x "$PYTHON_BASE" ]; then
   PYTHON_BASE="$(command -v python3 || true)"
@@ -27,7 +33,7 @@ chmod 700 "$RUNTIME_DIR"
 "${RUNTIME_DIR}/venv/bin/python" -c "import bleak; import importlib.metadata as m; print('bleak', m.version('bleak'))"
 
 mkdir -p "$(dirname "$PLIST_PATH")"
-HOME_VALUE="$HOME" REPO_ROOT="$ROOT" PLIST_TEMPLATE="$PLIST_TEMPLATE" PLIST_PATH="$PLIST_PATH" "${RUNTIME_DIR}/venv/bin/python" - <<'PY'
+HOME_VALUE="$HOME" REPO_ROOT="$ROOT" PLIST_TEMPLATE="$PLIST_TEMPLATE" TMP_PLIST="$TMP_PLIST" "${RUNTIME_DIR}/venv/bin/python" - <<'PY'
 import os
 from pathlib import Path
 
@@ -37,10 +43,30 @@ rendered = (
     .replace("__HOME__", os.environ["HOME_VALUE"])
     .replace("__REPO_ROOT__", os.environ["REPO_ROOT"])
 )
-Path(os.environ["PLIST_PATH"]).write_text(rendered, encoding="utf-8")
+Path(os.environ["TMP_PLIST"]).write_text(rendered, encoding="utf-8")
 PY
 
-echo "Rendered plist: ${PLIST_PATH}"
+echo "Rendered plist candidate: ${TMP_PLIST}"
+if [ -f "$PLIST_PATH" ]; then
+  echo "Diff against existing plist:"
+  diff -u "$PLIST_PATH" "$TMP_PLIST" || true
+else
+  echo "New plist would be created at ${PLIST_PATH}:"
+  cat "$TMP_PLIST"
+fi
+
+read -r -p "Write the plist to $PLIST_PATH? [y/N] " write_answer
+case "$write_answer" in
+  y|Y|yes|YES)
+    cp "$TMP_PLIST" "$PLIST_PATH"
+    ;;
+  *)
+    echo "Skipped writing plist. No LaunchAgent bootstrap will be run."
+    exit 0
+    ;;
+esac
+
+echo "Wrote plist: ${PLIST_PATH}"
 echo "Next operation would register LaunchAgent:"
 echo "launchctl bootstrap gui/$(id -u) ${PLIST_PATH}"
 read -r -p "Run launchctl bootstrap now? [y/N] " answer

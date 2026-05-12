@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -69,9 +70,11 @@ class CardputerSocketServer:
             try:
                 message = json.loads(raw.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
+                logging.warning("socket_server: bad JSON line, dropped (%d bytes)", len(raw))
                 return
 
             if not isinstance(message, dict):
+                logging.warning("socket_server: non-dict message, dropped")
                 return
 
             message_type = message.get("type")
@@ -79,12 +82,18 @@ class CardputerSocketServer:
                 await self._handle_hook_message(message)
             elif message_type == "status":
                 await self._handle_status_message(writer)
+            else:
+                logging.warning("socket_server: unknown type=%s, dropped", message_type)
         finally:
             writer.close()
             await writer.wait_closed()
 
     async def _handle_hook_message(self, message: dict[str, Any]) -> None:
         if message.get("hook_event_name") not in HOOK_EVENTS:
+            logging.warning(
+                "socket_server: unknown hook_event_name=%s, dropped",
+                message.get("hook_event_name"),
+            )
             return
         await self.event_queue.put(message)
 

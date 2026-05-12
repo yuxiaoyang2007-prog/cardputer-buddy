@@ -13,14 +13,14 @@ fi
 mkdir -p "$RUNTIME_DIR"
 chmod 700 "$RUNTIME_DIR" 2>/dev/null || true
 
-INPUT="$(cat)"
-
 fallback_log() {
+  local hook_event="${1:-unknown}"
+  local session_id="${2:-unknown}"
   mkdir -p "$(dirname "$LOG")"
   if [ "$(stat -f%z "$LOG" 2>/dev/null || echo 0)" -gt 5242880 ]; then
     mv -f "$LOG" "$LOG.1"
   fi
-  printf '[%s] %s %s daemon-unreachable\n' "$(date '+%Y-%m-%d %H:%M:%S')" "${HOOK_EVENT:-unknown}" "${SESSION_ID:-unknown}" >> "$LOG"
+  printf '[%s] %s %s daemon-unreachable\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$hook_event" "$session_id" >> "$LOG"
 }
 
 if [ -z "$PYTHON_BIN" ]; then
@@ -28,44 +28,42 @@ if [ -z "$PYTHON_BIN" ]; then
   exit 0
 fi
 
-PAYLOAD="$(
-  HOOK_INPUT="$INPUT" "$PYTHON_BIN" - <<'PY'
+PY_OUTPUT="$(
+"$PYTHON_BIN" -c '
 import json
-import os
+import socket
 import sys
 
+socket_path = sys.argv[1]
+hook_event = "unknown"
+session_id = "unknown"
+
 try:
-    payload = json.loads(os.environ.get("HOOK_INPUT", ""))
+    payload = json.load(sys.stdin)
     if not isinstance(payload, dict):
         raise ValueError("hook input is not an object")
+    hook_event = str(payload.get("hook_event_name") or "unknown")
+    session_id = str(payload.get("session_id") or "unknown")
     payload["type"] = "hook"
-    print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+    line = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8") + b"\n"
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.settimeout(0.2)
+    try:
+        sock.connect(socket_path)
+        sock.sendall(line)
+    finally:
+        sock.close()
 except Exception:
+    print(f"{hook_event}\t{session_id}")
     sys.exit(1)
-PY
-)" || {
-  fallback_log
-  exit 0
-}
+' "$SOCKET_PATH" 2>/dev/null
+)"
+PY_STATUS="$?"
 
-HOOK_EVENT="$(PAYLOAD="$PAYLOAD" "$PYTHON_BIN" -c 'import json,os; print(json.loads(os.environ["PAYLOAD"]).get("hook_event_name","unknown"))' 2>/dev/null || echo unknown)"
-SESSION_ID="$(PAYLOAD="$PAYLOAD" "$PYTHON_BIN" -c 'import json,os; print(json.loads(os.environ["PAYLOAD"]).get("session_id","unknown"))' 2>/dev/null || echo unknown)"
-
-SOCKET_PATH="$SOCKET_PATH" PAYLOAD="$PAYLOAD" "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
-import os
-import socket
-
-sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-sock.settimeout(0.2)
-try:
-    sock.connect(os.environ["SOCKET_PATH"])
-    sock.sendall(os.environ["PAYLOAD"].encode("utf-8") + b"\n")
-finally:
-    sock.close()
-PY
-
-if [ "$?" -ne 0 ]; then
-  fallback_log
+if [ "$PY_STATUS" -ne 0 ]; then
+  IFS=$'\t' read -r hook_event session_id <<< "$PY_OUTPUT"
+  fallback_log "${hook_event:-unknown}" "${session_id:-unknown}"
 fi
 
 exit 0

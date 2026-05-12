@@ -52,6 +52,10 @@ Do not edit `~/.claude/settings.json` blindly. Read the hooks section first, gen
 
 Example command target:
 
+#### Note on the path containing a space
+
+The repo path contains a space in `Claude Code`, so hook commands must use `bash '...'` quoting. Do not use the bare script path or the hook shell will split it at the space.
+
 ```json
 {
   "hooks": {
@@ -60,7 +64,7 @@ Example command target:
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh"
+            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
@@ -70,7 +74,7 @@ Example command target:
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh"
+            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
@@ -80,7 +84,7 @@ Example command target:
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh"
+            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
@@ -90,7 +94,7 @@ Example command target:
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh"
+            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
@@ -100,7 +104,7 @@ Example command target:
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh"
+            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
