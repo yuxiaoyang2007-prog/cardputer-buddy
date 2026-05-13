@@ -1,22 +1,3 @@
-# Upstream m5stack buddy bundle (own git repo, cloned from moremas/build-with-claude)
-build-with-claude/
-
-# cc-codex paired-build process docs — keep PLAN.md / review-*.md / cc-decisions-*.md / SUMMARY.md
-paired-build/**/codex-prompt-*.md
-paired-build/**/codex-impl-prompt.md
-paired-build/**/codex-impl-prompt-resume.md
-paired-build/**/codex-impl-result.md
-paired-build/**/codex-fix-prompt-*.md
-paired-build/**/codex-fix-result-*.md
-paired-build/**/codex-final-review-prompt*.md
-paired-build/**/test-results-*.log
-paired-build/**/impl-diff.patch
-paired-build/**/impl-diff.stat
-paired-build/**/impl-files.txt
-paired-build/**/baseline-*.txt
-paired-build/**/phase5-paired-build-snapshot.txt
-paired-build/.lock/
-
 # Python
 __pycache__/
 *.pyc

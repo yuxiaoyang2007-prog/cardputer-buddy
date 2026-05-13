@@ -1,103 +1,110 @@
-# Cardputer Buddy Daemon
+# Cardputer Buddy
 
-A macOS daemon that bridges [Claude Code](https://claude.ai/code) session activity to an [M5Stack Cardputer](https://docs.m5stack.com/en/core/Cardputer) over BLE, turning the Cardputer into a physical companion device with a Tamagotchi-style nurturing system.
+[中文版](README.zh-CN.md)
 
-macOS 守护进程，通过 BLE 把 [Claude Code](https://claude.ai/code) 的 session 活动桥接到 [M5Stack Cardputer](https://docs.m5stack.com/en/core/Cardputer)，将 Cardputer 变成一个带养成玩法的物理伴侣设备。
+A physical companion device for [Claude Code](https://claude.ai/code). An M5Stack Cardputer sits next to your keyboard and reacts to your coding activity in real time — a virtual pet that thrives when you code.
 
-## How It Works / 工作原理
+## What It Does
+
+A small creature lives on the Cardputer's screen. When Claude Code is actively working, it gets fed. When you complete a task, it gets excited. Leave it idle for too long and it gets hungry.
+
+- **Hunger & Mood** increase while Claude Code is running (+5/+3 every 5 minutes)
+- **Task completion** gives a mood and XP boost (+20 mood, +5 XP)
+- **Idle decay**: hunger drops by 15 every 6 hours, mood by 10 every 8 hours
+- **Evolution**: baby (lvl 0-4) → adult (lvl 5-9, 6 legs) → master (lvl 10+, crowned)
+- **Behavior**: low hunger = slow; low mood = frequent blinking; both critical = stops and shows "Feed me!"
+- Stats persist across reboots via ESP32 NVS
+
+## Architecture
 
 ```
 Claude Code hooks ──► Unix socket ──► Daemon ──► BLE ──► Cardputer
-  (SessionStart,       hook_to_        (asyncio,      (Nordic      (MicroPython,
-   Stop, etc.)         daemon.sh        bleak)         UART)       Tamagotchi UI)
 ```
 
-1. Claude Code fires hook events (SessionStart, Stop, UserPromptSubmit, etc.)
-2. A shell wrapper forwards the event JSON to the daemon's Unix socket
-3. The daemon aggregates sessions and sends periodic heartbeats over BLE
-4. The Cardputer displays coding activity and runs a Tamagotchi nurturing system
+The Mac-side daemon receives Claude Code hook events (SessionStart, Stop, etc.), aggregates session state, and pushes heartbeats to the Cardputer over BLE using the Nordic UART Service.
 
----
+## Requirements
 
-1. Claude Code 触发 hook 事件（SessionStart、Stop、UserPromptSubmit 等）
-2. Shell 脚本把事件 JSON 转发到 daemon 的 Unix socket
-3. Daemon 聚合 session 状态，通过 BLE 定期发送心跳
-4. Cardputer 显示编码活动，运行养成系统
-
-## Tamagotchi System / 养成系统
-
-The buddy on screen responds to your coding activity:
-
-- **Hunger & Mood** grow when Claude Code is actively running (+5/+3 every 5 minutes)
-- **Task completion** gives a mood and XP boost (+20 mood, +5 XP)
-- **Decay**: hunger drops by 15 every 6 hours, mood by 10 every 8 hours
-- **Evolution**: XP accumulates through triangular progression — baby (lvl 0-4) → adult (lvl 5-9) → master (lvl 10+, with a crown)
-- **Behavior**: low hunger slows movement, low mood causes frequent blinking, both critically low shows "Feed me!"
-- All stats persist in NVS across reboots
-
----
-
-屏幕上的 buddy 会对你的编码活动做出反应：
-
-- **饥饿和心情** 在 Claude Code 活跃时增长（每 5 分钟 +5/+3）
-- **任务完成** 心情和经验大幅提升（心情 +20，经验 +5）
-- **衰减**：饥饿每 6 小时 -15，心情每 8 小时 -10
-- **进化**：经验按三角级数累积 — 幼体（0-4 级）→ 成体（5-9 级）→ 大师（10+ 级，戴皇冠）
-- **行为**：饥饿低时减速，心情低时频繁眨眼，两者都极低时显示 "Feed me!"
-- 所有属性通过 NVS 跨重启持久化
-
-## Requirements / 依赖
-
-- macOS (LaunchAgent-based daemon)
+- macOS
 - Python 3.10+
 - [Claude Code](https://claude.ai/code)
-- [M5Stack Cardputer or Cardputer-Adv](https://docs.m5stack.com/en/core/Cardputer) with the buddy bundle flashed
+- [M5Stack Cardputer or Cardputer-Adv](https://docs.m5stack.com/en/core/Cardputer)
 
-## Install / 安装
+## Setup
+
+### 1. Flash the Cardputer
 
 ```bash
-git clone https://github.com/yuxiaoyang2007-prog/cardputer-buddy-daemon.git
-cd cardputer-buddy-daemon
+# Edit WiFi credentials first
+nano build-with-claude/buddy/device/wifi_event.py
+
+# Flash firmware and push apps (requires Claude Code)
+# In Claude Code, run: m5-onboard go
+```
+
+### 2. Install the daemon
+
+```bash
 scripts/install_daemon.sh
 ```
 
-The installer creates `~/.cardputer-daemon/`, installs [bleak](https://github.com/hbldh/bleak) into a venv, renders a LaunchAgent plist, and asks before bootstrapping. Configure Claude Code hooks as described in the [daemon docs](README-daemon.md).
+This creates a venv at `~/.cardputer-daemon/`, installs [bleak](https://github.com/hbldh/bleak), and sets up a LaunchAgent.
 
-安装脚本会创建 `~/.cardputer-daemon/`，在 venv 中安装 [bleak](https://github.com/hbldh/bleak)，渲染 LaunchAgent plist，启动前会询问确认。按 [daemon 文档](README-daemon.md) 配置 Claude Code hooks。
+### 3. Configure Claude Code hooks
 
-## Device Setup / 设备端设置
+Add the following to `~/.claude/settings.json` (adjust the path):
 
-The Cardputer needs the buddy bundle flashed. See the [build-with-claude](https://github.com/yuxiaoyang2007-prog/build-with-claude) fork for device-side code, or use the upstream [moremas/build-with-claude](https://github.com/moremas/build-with-claude) and apply the Tamagotchi patches from that fork.
+```json
+{
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "bash '/path/to/cardputer/hook_to_daemon.sh'" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "bash '/path/to/cardputer/hook_to_daemon.sh'" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "bash '/path/to/cardputer/hook_to_daemon.sh'" }] }],
+    "SubagentStop": [{ "hooks": [{ "type": "command", "command": "bash '/path/to/cardputer/hook_to_daemon.sh'" }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "command", "command": "bash '/path/to/cardputer/hook_to_daemon.sh'" }] }]
+  }
+}
+```
 
-Cardputer 需要刷入 buddy bundle。设备端代码见 [build-with-claude](https://github.com/yuxiaoyang2007-prog/build-with-claude) fork，或在上游 [moremas/build-with-claude](https://github.com/moremas/build-with-claude) 基础上应用该 fork 的养成系统补丁。
+Restart Claude Code after editing.
 
-## Project Structure / 项目结构
+## Project Structure
 
-| File | Purpose |
-|------|---------|
-| `daemon.py` | asyncio entrypoint, flock, logging, event consumer |
-| `session_store.py` | Session upsert, counters, TTL prune, heartbeat snapshot |
-| `socket_server.py` | Unix socket JSON line protocol |
-| `ble_client.py` | BLE client with reconnect backoff (via bleak) |
-| `hook_to_daemon.sh` | Claude Code hook wrapper |
-| `bridge.py` | Standalone one-shot BLE message sender |
-| `scripts/` | Install, uninstall, status scripts |
-| `tests/` | Unit tests for session store, socket server, BLE client |
+```
+├── daemon.py              # Mac daemon entrypoint (asyncio)
+├── session_store.py        # Session aggregation, heartbeat generation
+├── socket_server.py        # Unix socket server for hook events
+├── ble_client.py           # BLE client (bleak) with reconnect
+├── hook_to_daemon.sh       # Claude Code hook wrapper
+├── scripts/                # Install, uninstall, status
+├── tests/                  # Unit tests
+└── build-with-claude/      # Device-side code (M5Stack Cardputer)
+    └── buddy/device/
+        ├── main.py             # MicroPython entrypoint
+        ├── buddy_state.py      # Tamagotchi stats + NVS persistence
+        ├── buddy_protocol.py   # BLE command handler
+        ├── buddy_ble.py        # Nordic UART BLE peripheral
+        ├── buddy_ui_cp.py      # Screen rendering
+        ├── buddy_sprites.py    # Evolution stage sprites
+        └── wifi_event.py       # WiFi auto-connect (edit credentials here)
+```
 
-## Acknowledgments / 致谢
+## Debugging
 
-This project builds on top of the following open source projects:
+- Daemon log: `~/.cardputer-daemon/daemon.log`
+- Mute BLE temporarily: `touch ~/.cardputer-mute`
+- Check status: `scripts/cardputer-daemon-status.sh`
 
-本项目基于以下开源项目构建：
+## Acknowledgments
 
-| Project | License | Usage |
-|---------|---------|-------|
-| [build-with-claude](https://github.com/moremas/build-with-claude) by Anthropic | Apache 2.0 | Device-side buddy bundle (our Tamagotchi system is built on top of it) |
+| Project | License | Role |
+|---------|---------|------|
+| [build-with-claude](https://github.com/moremas/build-with-claude) (Anthropic) | Apache 2.0 | Original Cardputer buddy bundle; our Tamagotchi system is built on top |
 | [bleak](https://github.com/hbldh/bleak) | MIT | BLE communication from macOS to ESP32 |
-| [MicroPython](https://micropython.org/) | MIT | Runtime on the Cardputer (via UIFlow 2.0) |
-| [M5Stack UIFlow 2.0](https://uiflow2.m5stack.com/) | MIT | Firmware and hardware abstraction layer |
-| [pyserial](https://github.com/pyserial/pyserial) | BSD-3-Clause | USB serial communication for device flashing |
+| [MicroPython](https://micropython.org/) | MIT | Device runtime (via UIFlow 2.0) |
+| [M5Stack UIFlow 2.0](https://uiflow2.m5stack.com/) | MIT | Firmware and hardware abstraction |
+| [pyserial](https://github.com/pyserial/pyserial) | BSD-3-Clause | USB serial for device flashing |
 
-## License / 许可证
+## License
 
 Apache 2.0 — see [LICENSE](LICENSE).
