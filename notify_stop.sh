@@ -8,7 +8,7 @@
 # Concurrency: if a previous bridge is still connecting, this one will fail
 # to find the device (only one BLE central at a time). We swallow that.
 
-CARDPUTER_DIR="/Users/xiaoyangyu/Claude Code/cardputer"
+CARDPUTER_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG="/tmp/cardputer-hook.log"
 
 # Discard stdin (hook payload) — not used yet

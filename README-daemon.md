@@ -16,7 +16,7 @@ macOS LaunchAgent daemon for keeping one long-lived BLE connection to the M5 Car
 ## Install
 
 ```bash
-cd "/Users/xiaoyangyu/Claude Code/cardputer"
+cd /path/to/cardputer
 scripts/install_daemon.sh
 ```
 
@@ -31,7 +31,7 @@ If you answer no, review the plist and run the command manually later.
 ## Status
 
 ```bash
-cd "/Users/xiaoyangyu/Claude Code/cardputer"
+cd /path/to/cardputer
 scripts/cardputer-daemon-status.sh
 ```
 
@@ -40,7 +40,7 @@ The reply includes `ble_state`, `sessions`, `tokens_today`, `entries_today`, `la
 ## Uninstall
 
 ```bash
-cd "/Users/xiaoyangyu/Claude Code/cardputer"
+cd /path/to/cardputer
 scripts/uninstall_daemon.sh
 ```
 
@@ -64,7 +64,7 @@ The repo path contains a space in `Claude Code`, so hook commands must use `bash
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
+            "command": "bash '/path/to/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
@@ -74,7 +74,7 @@ The repo path contains a space in `Claude Code`, so hook commands must use `bash
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
+            "command": "bash '/path/to/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
@@ -84,7 +84,7 @@ The repo path contains a space in `Claude Code`, so hook commands must use `bash
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
+            "command": "bash '/path/to/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
@@ -94,7 +94,7 @@ The repo path contains a space in `Claude Code`, so hook commands must use `bash
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
+            "command": "bash '/path/to/cardputer/hook_to_daemon.sh'"
           }
         ]
       }
@@ -104,7 +104,7 @@ The repo path contains a space in `Claude Code`, so hook commands must use `bash
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/Users/xiaoyangyu/Claude Code/cardputer/hook_to_daemon.sh'"
+            "command": "bash '/path/to/cardputer/hook_to_daemon.sh'"
           }
         ]
       }

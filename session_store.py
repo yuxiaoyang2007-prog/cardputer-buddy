@@ -109,6 +109,7 @@ class SessionStore:
             "msg": self.latest_event_msg,
             "total": total,
             "running": running,
+            "coding_active": running > 0,
             "waiting": total - running,
             "tokens": self.tokens_today,
             "tokens_today": self.tokens_today,
