@@ -4,6 +4,10 @@
 
 给 [Claude Code](https://claude.ai/code) 做的物理伴侣设备。一台 M5Stack Cardputer 放在键盘旁边，实时响应你的编码活动——屏幕上住着一只虚拟宠物，你写代码它就吃饱，你停下来它就饿。
 
+## 和官方 Buddy 有什么区别
+
+官方 Claude Buddy 需要 Claude Desktop 桌面应用才能连接。这个项目只需要 **Claude Code CLI**，不依赖桌面应用。守护进程直接接入 Claude Code 的 hook 事件系统，自己完成 BLE 桥接。
+
 ## 它做什么
 
 Cardputer 屏幕上有一个小生物。Claude Code 在跑的时候，它会被喂食；你完成一个任务，它会变得兴奋；长时间不写代码，它就饿了。

@@ -4,6 +4,10 @@
 
 A physical companion device for [Claude Code](https://claude.ai/code). An M5Stack Cardputer sits next to your keyboard and reacts to your coding activity in real time — a virtual pet that thrives when you code.
 
+## How Is This Different From the Official Buddy?
+
+The official Claude Buddy requires the Claude Desktop app to connect. This project works with **Claude Code CLI only** — no Desktop app needed. The daemon hooks directly into Claude Code's event system and bridges everything over BLE itself.
+
 ## What It Does
 
 A small creature lives on the Cardputer's screen. When Claude Code is actively working, it gets fed. When you complete a task, it gets excited. Leave it idle for too long and it gets hungry.
