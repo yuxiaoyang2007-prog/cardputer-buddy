@@ -2,8 +2,33 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
+import json
 import os
 from typing import Callable, Literal
+
+
+_USAGE_FILE = Path.home() / ".cardputer-daemon" / "usage.json"
+
+
+def _read_usage() -> dict:
+    """Load rate_limits written by the statusline script.
+
+    Returns a compact dict with five_hour/seven_day percentages, or empty
+    if the file is missing/unreadable. Compact keys keep the BLE payload small.
+    """
+    try:
+        data = json.loads(_USAGE_FILE.read_text())
+    except (FileNotFoundError, ValueError, OSError):
+        return {}
+    out: dict = {}
+    five = data.get("five_hour", {}).get("used_percentage")
+    week = data.get("seven_day", {}).get("used_percentage")
+    if isinstance(five, (int, float)):
+        out["5h"] = round(five)
+    if isinstance(week, (int, float)):
+        out["7d"] = round(week)
+    return out
 
 
 HOOK_EVENTS = {
@@ -115,6 +140,9 @@ class SessionStore:
             "tokens_today": self.tokens_today,
             "entries": self.entries_today,
         }
+        usage = _read_usage()
+        if usage:
+            hb["usage"] = usage
         if self._pending_notif is not None:
             hb["notif"] = self._pending_notif
             self._pending_notif = None

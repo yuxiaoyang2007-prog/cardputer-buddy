@@ -373,22 +373,25 @@ class BuddyUI:
         self._draw_identity()
         hb = self._last
         _LCD.setTextSize(1)
-        running = hb.get("running", 0)
-        waiting = hb.get("waiting", 0)
-        total = hb.get("total", 0)
-        q_color = GREEN if running > 0 else GRAY_MID
-        _LCD.setTextColor(q_color, BLACK)
-        queue = "Q: {}run {}wait {}tot".format(running, waiting, total)
-        while _LCD.textWidth(queue) > _TEXT_MAX_W and len(queue) > 1:
-            queue = queue[:-1]
-        _LCD.drawString(queue, 6, 42)
-        tokens_today = hb.get("tokens_today", 0)
+        usage = hb.get("usage") or {}
+        if usage:
+            self._draw_usage_line(usage, 6, 42)
+        else:
+            running = hb.get("running", 0)
+            waiting = hb.get("waiting", 0)
+            total = hb.get("total", 0)
+            q_color = GREEN if running > 0 else GRAY_MID
+            _LCD.setTextColor(q_color, BLACK)
+            queue = "Q: {}run {}wait {}tot".format(running, waiting, total)
+            while _LCD.textWidth(queue) > _TEXT_MAX_W and len(queue) > 1:
+                queue = queue[:-1]
+            _LCD.drawString(queue, 6, 42)
+        events = hb.get("tokens_today", 0)
         _LCD.setTextColor(CYAN, BLACK)
-        tok = "{:,}".format(tokens_today).replace(",", "'")
-        tok_line = "Today: " + tok + " tok"
-        while _LCD.textWidth(tok_line) > _TEXT_MAX_W and len(tok_line) > 1:
-            tok_line = tok_line[:-1]
-        _LCD.drawString(tok_line, 6, 58)
+        ev_line = "Today: {} hooks".format(events)
+        while _LCD.textWidth(ev_line) > _TEXT_MAX_W and len(ev_line) > 1:
+            ev_line = ev_line[:-1]
+        _LCD.drawString(ev_line, 6, 58)
         if self._prompt:
             self._draw_prompt_box(self._prompt)
         elif self._tama_stats:
@@ -406,6 +409,36 @@ class BuddyUI:
                 while _LCD.textWidth(msg) > _TEXT_MAX_W and len(msg) > 1:
                     msg = msg[:-1]
                 _LCD.drawString(msg, 6, 74)
+
+    def _draw_usage_line(self, usage: dict, x: int, y: int):
+        """Render: 5h[####.]45% 7d[#....]12% — yellow/red bars when high."""
+        five = usage.get("5h")
+        week = usage.get("7d")
+        _LCD.setTextSize(1)
+        cur_x = x
+        for label, pct in (("5h", five), ("7d", week)):
+            if pct is None:
+                continue
+            pct = max(0, min(100, int(pct)))
+            _LCD.setTextColor(GRAY_MID, BLACK)
+            _LCD.drawString(label, cur_x, y)
+            cur_x += _LCD.textWidth(label) + 1
+            bar_x, bar_y, bar_w, bar_h = cur_x, y + 1, 30, 7
+            _LCD.drawRect(bar_x, bar_y, bar_w, bar_h, GRAY_MID)
+            fill_w = (bar_w - 2) * pct // 100
+            if pct >= 90:
+                color = RED
+            elif pct >= 70:
+                color = YELLOW
+            else:
+                color = GREEN
+            if fill_w > 0:
+                _LCD.fillRect(bar_x + 1, bar_y + 1, fill_w, bar_h - 2, color)
+            cur_x += bar_w + 2
+            pct_text = "{}%".format(pct)
+            _LCD.setTextColor(CREAM, BLACK)
+            _LCD.drawString(pct_text, cur_x, y)
+            cur_x += _LCD.textWidth(pct_text) + 6
 
     def _draw_tama_line(self, stats: dict):
         hunger = stats.get("hunger", 50)

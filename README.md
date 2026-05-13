@@ -34,6 +34,16 @@ The Mac-side daemon receives Claude Code hook events (SessionStart, Stop, etc.),
 - [Claude Code](https://claude.ai/code)
 - [M5Stack Cardputer or Cardputer-Adv](https://docs.m5stack.com/en/core/Cardputer)
 
+## Connectivity
+
+| Type | When | Required? |
+|------|------|-----------|
+| **USB-C cable** | Initial flashing only (Mac → Cardputer) | Required once |
+| **Bluetooth (BLE)** | Runtime (Mac daemon ↔ Cardputer, Nordic UART) | Always required |
+| **WiFi** | Optional boot splash showing IP address | Not required |
+
+After flashing, the Cardputer talks to your Mac purely over BLE. No internet, no USB, no LAN. Both devices need Bluetooth on; macOS has it built in.
+
 ## Setup
 
 ### 1. Flash the Cardputer
@@ -71,6 +81,23 @@ Add the following to `~/.claude/settings.json` (adjust the path):
 ```
 
 Restart Claude Code after editing.
+
+### 4. (Optional) Configure statusline for usage display
+
+To show 5-hour and weekly usage progress bars on the device, configure a statusline in `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "bash '/path/to/cardputer/scripts/statusline.sh'"
+  }
+}
+```
+
+The script captures `rate_limits` from Claude Code's statusline JSON and writes them to `~/.cardputer-daemon/usage.json` for the daemon to forward. If you already have a statusline tool (like claude-hud), put its command in `~/.cardputer-daemon/downstream-statusline.sh` and the cardputer wrapper will chain to it.
+
+Note: `rate_limits` data is only available for Claude.ai subscribers (OAuth login), and only after the first message in a session.
 
 ## Project Structure
 
