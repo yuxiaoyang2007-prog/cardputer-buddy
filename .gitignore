@@ -14,3 +14,6 @@ __pycache__/
 # venv (we install daemon's venv to ~/.cardputer-daemon/, not in repo)
 .venv/
 venv/
+
+# Local WiFi credentials for the buddy bundle — never commit real home creds
+wifi_secret.py

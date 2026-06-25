@@ -22,9 +22,14 @@ is deterministic regardless of that.
 """
 
 # --- WIFI CONFIG --------------------------------------------------------
-# Replace with your own network credentials before flashing.
-SSID = "your-ssid"
-PASSWORD = "your-password"
+# Credentials live in wifi_secret.py (gitignored, keeps the WiFi password
+# out of version control). Falls back to placeholders if it's absent so the
+# bundle still imports cleanly.
+try:
+    from wifi_secret import SSID, PASSWORD
+except ImportError:
+    SSID = "your-ssid"
+    PASSWORD = "your-password"
 # -----------------------------------------------------------------------
 
 # How long to wait for an IP before giving up. The venue network is
